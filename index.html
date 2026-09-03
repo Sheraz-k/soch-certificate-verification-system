@@ -7,7 +7,8 @@
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
     .card { background: #fff; padding: 2.5rem; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 480px; text-align: center; border-top: 6px solid #004d25; }
-    h2 { color: #004d25; margin-bottom: 0.5rem; margin-top: 0; }
+    .logo { width: 110px; height: auto; margin-bottom: 0.5rem; }
+    h2 { color: #004d25; margin-bottom: 0.2rem; margin-top: 0; font-size: 1.5rem; }
     p.subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.95rem; }
     .input-group { display: flex; justify-content: center; gap: 8px; margin-bottom: 1rem; }
     input { width: 70%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; text-align: center; }
@@ -22,6 +23,8 @@
 <body>
 
 <div class="card">
+  <!-- SOCH Foundation Logo -->
+  <img src="logo.png" alt="SOCH Foundation Logo" class="logo">
   <h2>SOCH Foundation</h2>
   <p class="subtitle">Certificate Verification Portal</p>
 
@@ -34,6 +37,9 @@
 </div>
 
 <script>
+  // Paste your Published Google Sheet CSV URL here (File > Share > Publish to web > CSV)
+  const GOOGLE_SHEET_CSV_URL = "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE";
+
   window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const idParam = urlParams.get('id');
@@ -46,7 +52,6 @@
   function handleManualVerify() {
     const inputId = document.getElementById('certId').value.trim();
     if (inputId) {
-      // Update URL in browser location bar without page reload
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + encodeURIComponent(inputId);
       window.history.pushState({ path: newUrl }, '', newUrl);
       fetchAndVerify(inputId);
@@ -55,34 +60,58 @@
 
   async function fetchAndVerify(certificateId) {
     const resultDiv = document.getElementById('result');
+    let cert = null;
 
-    try {
-      const response = await fetch('certificates.json');
-      const certificates = await response.json();
-      const cert = certificates.find(c => c.id.toLowerCase() === certificateId.toLowerCase());
-
-      if (cert) {
-        const fullShareableUrl = window.location.origin + window.location.pathname + '?id=' + cert.id;
-        resultDiv.className = 'result valid';
-        resultDiv.style.display = 'block';
-        resultDiv.innerHTML = `
-          <h3 style="margin-top:0; color:#137333;">✓ Authenticity Verified</h3>
-          <p><strong>Student Name:</strong> ${cert.name}</p>
-          <p><strong>Program:</strong> ${cert.program}</p>
-          <p><strong>Certificate ID:</strong> ${cert.id}</p>
-          <p><strong>Issue Date:</strong> ${cert.issue_date}</p>
-          <hr style="border:0; border-top:1px solid #b7e1cd; margin:10px 0;">
-          <div class="share-link"><strong>Verification URL:</strong><br>${fullShareableUrl}</div>
-        `;
-      } else {
-        resultDiv.className = 'result invalid';
-        resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<strong>Not Found:</strong> Invalid or unverified Certificate ID.';
+    // 1. Try fetching dynamically from Google Sheets CSV first
+    if (GOOGLE_SHEET_CSV_URL && GOOGLE_SHEET_CSV_URL !== "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE") {
+      try {
+        const response = await fetch(GOOGLE_SHEET_CSV_URL);
+        const csvText = await response.text();
+        const rows = csvText.split('\n').map(row => row.split(','));
+        
+        // Match Certificate ID column (index 0)
+        for (let i = 1; i < rows.length; i++) {
+          const col = rows[i].map(cell => cell.trim().replace(/^"(.*)"$/, '$1'));
+          if (col[0] && col[0].toLowerCase() === certificateId.toLowerCase()) {
+            cert = { id: col[0], name: col[1], program: col[2], batch: col[3], issue_date: col[4] };
+            break;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load Google Sheet, falling back to JSON:", e);
       }
-    } catch (err) {
+    }
+
+    // 2. Fallback to local certificates.json if not found in Google Sheets
+    if (!cert) {
+      try {
+        const response = await fetch('certificates.json');
+        const certificates = await response.json();
+        cert = certificates.find(c => c.id.toLowerCase() === certificateId.toLowerCase());
+      } catch (err) {
+        console.error("Failed to load certificates.json:", err);
+      }
+    }
+
+    // Display Result
+    if (cert) {
+      const fullShareableUrl = window.location.origin + window.location.pathname + '?id=' + cert.id;
+      resultDiv.className = 'result valid';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <h3 style="margin-top:0; color:#137333;">✓ Authenticity Verified</h3>
+        <p><strong>Student Name:</strong> ${cert.name}</p>
+        <p><strong>Program:</strong> ${cert.program}</p>
+        <p><strong>Batch:</strong> ${cert.batch || 'Batch I'}</p>
+        <p><strong>Certificate ID:</strong> ${cert.id}</p>
+        <p><strong>Issue Date:</strong> ${cert.issue_date}</p>
+        <hr style="border:0; border-top:1px solid #b7e1cd; margin:10px 0;">
+        <div class="share-link"><strong>Verification URL:</strong><br>${fullShareableUrl}</div>
+      `;
+    } else {
       resultDiv.className = 'result invalid';
       resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<strong>Error:</strong> Unable to access certificate dataset.';
+      resultDiv.innerHTML = '<strong>Not Found:</strong> Invalid or unverified Certificate ID.';
     }
   }
 </script>
