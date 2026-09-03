@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOCH Foundation - Certificate Verification</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; border-top: 5px solid #004d25; }
+    h2 { color: #004d25; margin-bottom: 1rem; }
+    input { width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 1rem; }
+    button { background: #004d25; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    button:hover { background: #003318; }
+    .result { margin-top: 1.5rem; text-align: left; padding: 10px; border-radius: 4px; display: none; }
+    .valid { background: #e6f4ea; border: 1px solid #34a853; color: #137333; }
+    .invalid { background: #fce8e6; border: 1px solid #ea4335; color: #c5221f; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>SOCH Foundation</h2>
+  <p>Verify Certificate Authenticity</p>
+  <input type="text" id="certId" placeholder="Enter Certificate ID (e.g. SB-I-05092026-1)">
+  <br>
+  <button onclick="verifyCertificate()">Verify</button>
+
+  <div id="result" class="result"></div>
+</div>
+
+<script>
+  // Auto-search if ID is passed in URL query parameter (e.g. ?id=SB-I-05092026-1)
+  window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const idParam = urlParams.get('id');
+    if (idParam) {
+      document.getElementById('certId').value = idParam;
+      verifyCertificate();
+    }
+  };
+
+  async function verifyCertificate() {
+    const inputId = document.getElementById('certId').value.trim();
+    const resultDiv = document.getElementById('result');
+    
+    if (!inputId) {
+      resultDiv.className = 'result invalid';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<strong>Error:</strong> Please enter a Certificate ID.';
+      return;
+    }
+
+    try {
+      const response = await fetch('certificates.json');
+      const certificates = await response.json();
+      const cert = certificates.find(c => c.id.toLowerCase() === inputId.toLowerCase());
+
+      if (cert) {
+        resultDiv.className = 'result valid';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+          <h3 style="margin-top:0; color:#137333;">✓ Certificate Verified</h3>
+          <p><strong>Student Name:</strong> ${cert.name}</p>
+          <p><strong>Program:</strong> ${cert.program}</p>
+          <p><strong>Certificate ID:</strong> ${cert.id}</p>
+          <p><strong>Issue Date:</strong> ${cert.issue_date}</p>
+        `;
+      } else {
+        resultDiv.className = 'result invalid';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<strong>Not Found:</strong> Invalid or unverified Certificate ID.';
+      }
+    } catch (err) {
+      resultDiv.className = 'result invalid';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<strong>Error:</strong> Unable to fetch certificate records.';
+    }
+  }
+</script>
+
+</body>
+</html>
