@@ -38,7 +38,7 @@
 
 <script>
   // Paste your Published Google Sheet CSV URL here (File > Share > Publish to web > CSV)
-  const GOOGLE_SHEET_CSV_URL = "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE";
+  const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLz08Hdvuec1brJx5aqoF2ppsbeMmrZp61c17NHqgQPOJZoEC0eWUT_ebZiazgSemYkakBcJGg59DG/pub?output=csv";
 
   window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -63,7 +63,7 @@
     let cert = null;
 
     // 1. Try fetching dynamically from Google Sheets CSV first
-    if (GOOGLE_SHEET_CSV_URL && GOOGLE_SHEET_CSV_URL !== "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE") {
+    if (GOOGLE_SHEET_CSV_URL && GOOGLE_SHEET_CSV_URL !== "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLz08Hdvuec1brJx5aqoF2ppsbeMmrZp61c17NHqgQPOJZoEC0eWUT_ebZiazgSemYkakBcJGg59DG/pub?output=csv") {
       try {
         const response = await fetch(GOOGLE_SHEET_CSV_URL);
         const csvText = await response.text();
